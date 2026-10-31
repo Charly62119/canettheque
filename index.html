@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Canetthèque</title>
+<meta name="description" content="Ma collection de canettes Monster, en photos, avec vérification par code-barres en magasin.">
+<meta name="theme-color" content="#060706">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Canetthèque">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@500&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout : vitrine de canettes en grille, barre de recherche et vérification code-barres collées en haut, fiches plein écran.
+   Thème unique et assumé : noir mat et vert néon, l'univers des canettes. */
+:root {
+  --bg: #060706;
+  --surface: #0F110E;
+  --raise: #161915;
+  --fg: #F1F5EC;
+  --muted: #9CA595;
+  --line: #262B23;
+  --accent: #8CFF1A;
+  --accent-ink: #060706;
+  --glow: rgba(140, 255, 26, .28);
+  --owned: #FF5A3D;
+  --owned-bg: #2A0F0A;
+  --fresh: #8CFF1A;
+  --fresh-bg: #142A07;
+  --metal-a: #1D211B;
+  --metal-b: #3F473A;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
+  --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body {
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--bg);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 980px; margin: 0 auto; }
+
+/* ---------- En-tête ---------- */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.top .wrap { display: grid; gap: 10px; padding-block: 12px 12px; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.top { border-bottom-color: var(--line); box-shadow: 0 1px 0 var(--glow); }
+.brand h1 {
+  margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 32px;
+  letter-spacing: .02em; text-transform: uppercase; line-height: 1;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.brand h1 .accent { color: var(--accent); text-shadow: 0 0 18px var(--glow); }
+.emblem { flex: none; color: var(--accent); filter: drop-shadow(0 0 6px var(--glow)); }
+.stats { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--fg); font-weight: 700; }
+.searchrow { display: flex; gap: 8px; }
+.search {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+  background: var(--raise); border: 1px solid var(--line); border-radius: 12px; padding: 0 12px;
+}
+.search svg { flex: none; color: var(--muted); }
+.search input { flex: 1; min-width: 0; border: 0; background: none; padding: 11px 0; outline: none; font-size: 16px; }
+.search .clear { border: 0; background: none; color: var(--muted); padding: 4px; font-size: 18px; line-height: 1; }
+.btn-scan {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  border: 0; border-radius: 12px; padding: 0 14px; min-height: 46px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 14px;
+  text-transform: uppercase; letter-spacing: .04em; box-shadow: 0 0 16px var(--glow);
+}
+.btn-scan svg { flex: none; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px; padding: 0 2px 2px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; border: 1px solid var(--line); background: transparent; border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip .n { font-variant-numeric: tabular-nums; opacity: .65; margin-left: 4px; }
+
+/* ---------- Vitrine ---------- */
+main .wrap { padding-block: 16px 120px; display: grid; gap: 14px; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.toolbar .count { font-size: 13px; color: var(--muted); }
+.toolbar select {
+  border: 1px solid var(--line); background: var(--raise); border-radius: 10px; padding: 6px 10px; font-size: 13px;
+}
+.note {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px;
+  font-size: 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+}
+.note p { margin: 0; min-width: 0; flex: 1 1 220px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 16px 12px; }
+@media (min-width: 640px) { .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } }
+.can {
+  display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; text-align: left; min-width: 0;
+}
+.ph {
+  position: relative; aspect-ratio: 3 / 4; width: 100%; max-width: 100%; border-radius: 12px; overflow: hidden;
+  background: var(--raise); border: 1px solid var(--line);
+}
+.ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.can:active .ph { transform: scale(.98); }
+.qty {
+  position: absolute; top: 6px; right: 6px; background: var(--fg); color: var(--bg);
+  font-size: 11px; font-weight: 800; border-radius: 999px; padding: 1px 7px; font-variant-numeric: tabular-nums;
+}
+.badge-ex {
+  position: absolute; left: 6px; bottom: 6px; background: var(--surface); color: var(--muted);
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 6px; padding: 2px 6px;
+  border: 1px solid var(--line);
+}
+.can .nm { font-weight: 700; font-size: 13.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.can .sub { font-size: 12px; color: var(--muted); line-height: 1.3; margin-top: -3px; overflow-wrap: anywhere; }
+
+/* Canette dessinée quand il n'y a pas de photo */
+.noimg { position: absolute; inset: 0; display: grid; place-items: center; background: var(--surface); }
+.canshape {
+  width: 52%; height: 82%; border-radius: 14% / 6%;
+  background: linear-gradient(90deg, var(--metal-a), var(--metal-b) 38%, var(--metal-a) 70%, var(--metal-b));
+  position: relative; display: grid; place-items: center; overflow: hidden;
+  box-shadow: inset 0 6px 0 rgba(0,0,0,.08), inset 0 -6px 0 rgba(0,0,0,.08);
+}
+.canshape span {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: 15px; letter-spacing: .04em;
+  color: var(--fg); opacity: .7; max-height: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.empty { text-align: center; padding: 40px 12px; display: grid; gap: 10px; justify-items: center; }
+.empty .canshape { width: 70px; height: 120px; }
+.empty h2 { margin: 6px 0 0; font-family: var(--font-display); font-weight: 800; font-size: 26px; text-transform: uppercase; text-wrap: balance; }
+.empty p { margin: 0; color: var(--muted); max-width: 40ch; }
+
+.fab {
+  position: fixed; z-index: 30;
+  right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 800; padding: 14px 20px 14px 16px;
+  text-transform: uppercase; letter-spacing: .04em; box-shadow: var(--shadow), 0 0 22px var(--glow);
+}
+
+/* ---------- Fiches plein écran ---------- */
+.sheet {
+  position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; overscroll-behavior: contain;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sheet-head {
+  position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.sheet-head .wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-block: 10px; }
+.back { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; font-weight: 700; padding: 8px 4px; }
+.sheet-head h2 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 22px; text-transform: uppercase; }
+.sheet-body .wrap { padding-block: 16px 40px; display: grid; gap: 18px; }
+
+/* Détail */
+.gallery { display: grid; gap: 8px; }
+.photos {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px; border-radius: 14px; scrollbar-width: none;
+}
+.photos::-webkit-scrollbar { display: none; }
+.slide {
+  flex: 0 0 100%; scroll-snap-align: center; height: min(62vh, 560px); border-radius: 14px; overflow: hidden;
+  background: var(--raise); border: 1px solid var(--line); position: relative; touch-action: pan-x pan-y;
+}
+.slide img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform .2s ease; cursor: zoom-in; }
+.slide.zoom img { transform: scale(2.4); cursor: zoom-out; }
+.slide .noimg { border-radius: 14px; }
+.gal-meta { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); gap: 8px; flex-wrap: wrap; }
+.d-title { display: grid; gap: 2px; }
+.d-title .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.d-title h3 { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 36px; line-height: 1; text-transform: uppercase; text-wrap: balance; overflow-wrap: anywhere; }
+.specs { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; font-size: 14.5px; }
+.specs dt { color: var(--muted); }
+.specs dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.mono { font-family: var(--font-mono); font-size: 13.5px; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn {
+  border: 1px solid var(--line); background: var(--raise); border-radius: 12px; padding: 11px 16px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { color: var(--owned); }
+.btn.danger-solid { background: var(--owned); border-color: var(--owned); color: var(--raise); }
+.btn[disabled] { opacity: .55; cursor: default; }
+.confirm { border: 1px solid var(--owned); background: var(--owned-bg); border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; }
+.confirm p { margin: 0; font-weight: 600; }
+
+/* Formulaire */
+form { display: grid; gap: 16px; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field label, .field .lbl { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.field input, .field textarea, .field select {
+  width: 100%; border: 1px solid var(--line); background: var(--raise); border-radius: 10px; padding: 11px 12px; font-size: 16px;
+}
+.field textarea { min-height: 84px; resize: vertical; }
+.field .hint { font-size: 12.5px; color: var(--muted); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 380px) { .row2 { grid-template-columns: 1fr; } }
+.codeline { display: flex; gap: 8px; }
+.codeline input { flex: 1; min-width: 0; font-family: var(--font-mono); letter-spacing: .04em; }
+.thumbs { display: flex; gap: 10px; flex-wrap: wrap; }
+.thumb { position: relative; width: 84px; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--raise); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .x {
+  position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 999px; border: 0;
+  background: var(--fg); color: var(--bg); font-weight: 800; line-height: 1; display: grid; place-items: center;
+}
+.addph {
+  width: 84px; aspect-ratio: 3 / 4; border-radius: 10px; border: 1.5px dashed var(--line); background: transparent;
+  display: grid; place-items: center; align-content: center; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 700; text-align: center;
+}
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--raise); overflow: hidden; width: max-content; }
+.stepper button { border: 0; background: none; width: 44px; height: 44px; font-size: 20px; font-weight: 700; }
+.stepper output { min-width: 36px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+.warn { border-radius: 10px; padding: 10px 12px; font-size: 13.5px; background: var(--owned-bg); color: var(--fg); border: 1px solid var(--owned); }
+.warn button { border: 0; background: none; color: var(--owned); font-weight: 700; padding: 0; text-decoration: underline; }
+.err { color: var(--owned); font-weight: 600; font-size: 14px; }
+.photo-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.photo-btns .btn { flex: 1 1 140px; }
+.btn.ghost-accent { border-color: var(--accent); color: var(--accent); background: transparent; }
+.ident { border: 1px solid var(--accent); border-radius: 14px; padding: 14px; display: grid; gap: 10px; background: var(--fresh-bg); }
+.ident-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ident-head b { font-family: var(--font-display); font-weight: 800; font-size: 20px; text-transform: uppercase; }
+.conf { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.ident ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.sugg { display: grid; grid-template-columns: max-content 1fr auto; gap: 6px 12px; align-items: center; font-size: 14px; }
+.sugg dt { color: var(--muted); }
+.sugg dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.sugg .tag { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+.sugg button { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 8px; padding: 3px 8px; font-size: 12px; font-weight: 700; }
+.tips { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.tips summary { cursor: pointer; padding: 12px 14px; font-weight: 700; list-style-position: inside; }
+.tips div { padding: 0 14px 14px; display: grid; gap: 10px; font-size: 14px; }
+.tips p { margin: 0; }
+.tips b { color: var(--accent); }
+
+/* Vérification en magasin */
+.scan-photo { display: flex; gap: 12px; align-items: center; }
+.scan-photo img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.status { color: var(--muted); font-size: 14px; }
+.verdict { border-radius: 16px; padding: 16px; display: grid; gap: 6px; }
+.verdict .big { font-family: var(--font-display); font-weight: 900; font-size: 30px; line-height: 1; text-transform: uppercase; text-wrap: balance; }
+.verdict p { margin: 0; font-size: 14px; }
+.verdict.owned { background: var(--owned-bg); border: 1.5px solid var(--owned); }
+.verdict.owned .big { color: var(--owned); }
+.verdict.fresh { background: var(--fresh-bg); border: 1.5px solid var(--fresh); }
+.verdict.fresh .big { color: var(--fresh); }
+.matches { display: grid; gap: 12px; }
+.match {
+  display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; text-align: left;
+  border: 1px solid var(--line); background: var(--raise); border-radius: 14px; padding: 10px;
+}
+.match .ph { border-radius: 10px; }
+.match .info { min-width: 0; display: grid; gap: 4px; }
+.match .info b { font-size: 16px; overflow-wrap: anywhere; }
+.match .info span { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+
+.toast {
+  position: fixed; z-index: 90; left: 50%; transform: translateX(-50%);
+  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  background: var(--fg); color: var(--bg); border-radius: 12px; padding: 10px 16px; font-weight: 600; font-size: 14px;
+  box-shadow: var(--shadow); max-width: calc(100% - 32px);
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---------- Ajouts version installable ---------- */
+[hidden] { display: none !important; }
+.top .wrap > * { min-width: 0; }
+.search input { width: 0; }
+img { max-width: 100%; }
+html, body { margin: 0; }
+body { padding-top: env(safe-area-inset-top, 0px); }
+.brand-right { display: flex; align-items: center; gap: 10px; }
+.icon-btn {
+  border: 1px solid var(--line); background: var(--raise); border-radius: 10px; width: 38px; height: 38px;
+  display: grid; place-items: center; color: var(--fg);
+}
+.install { border-color: var(--accent); color: var(--accent); width: auto; padding: 0 12px; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Scanner en direct */
+.live {
+  position: fixed; inset: 0; z-index: 80; background: #000; display: grid; grid-template-rows: 1fr auto;
+}
+.live video { width: 100%; height: 100%; object-fit: cover; display: block; grid-row: 1 / 3; grid-column: 1; }
+.live .frame {
+  grid-row: 1; grid-column: 1; align-self: center; justify-self: center;
+  width: min(78vw, 360px); aspect-ratio: 16 / 10; border-radius: 16px;
+  border: 3px solid var(--accent); box-shadow: 0 0 0 100vmax rgba(0,0,0,.45), 0 0 24px var(--glow);
+  position: relative; pointer-events: none;
+}
+.live .frame::after {
+  content: ""; position: absolute; left: 6%; right: 6%; top: 50%; height: 2px; background: var(--owned);
+  box-shadow: 0 0 10px var(--owned); animation: sweep 1.6s ease-in-out infinite alternate;
+}
+@keyframes sweep { from { transform: translateY(-36px); } to { transform: translateY(36px); } }
+@media (prefers-reduced-motion: reduce) { .live .frame::after { animation: none; } }
+.live-top {
+  grid-row: 1; grid-column: 1; align-self: start; display: flex; justify-content: space-between; gap: 10px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+}
+.live-top button {
+  border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 800; background: rgba(6,7,6,.75); color: var(--fg);
+}
+.live-top button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.live-bottom {
+  grid-row: 2; grid-column: 1; display: grid; gap: 10px; text-align: center;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(transparent, rgba(0,0,0,.85) 30%);
+}
+.live-bottom p { margin: 0; color: var(--fg); font-weight: 600; }
+.live-bottom .btn { justify-self: center; }
+
+/* Réglages */
+.panel { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+.panel h3 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 20px; text-transform: uppercase; }
+.panel p { margin: 0; font-size: 14px; color: var(--muted); }
+.panel ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }
+.meter { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="gutter">
+    <div class="wrap">
+      <div class="brand">
+        <h1><svg class="emblem" width="26" height="30" viewBox="0 0 26 30" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><rect x="3" y="2" width="20" height="26" rx="10"/><ellipse cx="13" cy="10" rx="4.5" ry="3.6"/><path d="M13 16v6"/></svg><span>Canet<span class="accent">thèque</span></span></h1>
+        <div class="brand-right">
+          <button type="button" class="icon-btn install" id="installBtn" hidden>Installer</button>
+          <button type="button" class="icon-btn" id="settingsBtn" aria-label="Réglages et sauvegarde">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="stats" id="stats">Collection Monster</div>
+      <div class="searchrow">
+        <label class="search" for="q">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <span class="sr">Rechercher</span>
+          <input id="q" type="search" placeholder="Nom, gamme, pays, code…" autocomplete="off" enterkeyhint="search">
+          <button type="button" class="clear" id="qClear" aria-label="Effacer la recherche" hidden>×</button>
+        </label>
+        <button type="button" class="btn-scan" id="scanBtn">
+          <svg width="20" height="18" viewBox="0 0 20 18" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="2" height="18"/><rect x="3.5" y="0" width="1" height="18"/><rect x="6" y="0" width="2.5" height="18"/><rect x="10" y="0" width="1" height="18"/><rect x="12.5" y="0" width="2" height="18"/><rect x="16" y="0" width="1" height="18"/><rect x="18" y="0" width="2" height="18"/></svg>
+          Scanner
+        </button>
+      </div>
+      <div class="chips" id="chips" role="toolbar" aria-label="Filtrer par gamme"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="gutter">
+    <div class="wrap">
+      <div id="notes"></div>
+      <div class="toolbar" id="toolbar" hidden>
+        <span class="count" id="count"></span>
+        <label><span class="sr">Trier</span>
+          <select id="sort">
+            <option value="recent">Dernières ajoutées</option>
+            <option value="az">Nom A → Z</option>
+            <option value="gamme">Par gamme</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div id="empty"></div>
+    </div>
+  </div>
+</main>
+
+<button type="button" class="fab" id="addBtn">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+  Ajouter
+</button>
+
+<!-- Fiche canette -->
+<section class="sheet" id="detail" hidden aria-label="Fiche canette">
+  <div class="sheet-head"><div class="gutter"><div class="wrap">
+    <button type="button" class="back" data-close="detail">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Vitrine
+    </button>
+    <span></span>
+  </div></div></div>
+  <div class="sheet-body"><div class="gutter"><div class="wrap" id="detailBody"></div></div></div>
+</section>
+
+<!-- Formulaire -->
+<section class="sheet" id="formSheet" hidden aria-label="Ajouter ou modifier une canette">
+  <div class="sheet-head"><div class="gutter"><div class="wrap">
+    <button type="button" class="back" data-close="formSheet">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Annuler
+    </button>
+    <h2 id="formTitle">Nouvelle canette</h2>
+  </div></div></div>
+  <div class="sheet-body"><div class="gutter"><div class="wrap">
+    <form id="canForm" novalidate>
+      <div class="field">
+        <span class="lbl">Photos</span>
+        <div class="thumbs" id="thumbs" hidden></div>
+        <div class="photo-btns">
+          <button type="button" class="btn primary" id="camBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Appareil photo
+          </button>
+          <button type="button" class="btn" id="albumBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>Album photo
+          </button>
+        </div>
+        <span class="hint">Face, dos et détails qui changent d'une édition à l'autre. Le code-barres est lu automatiquement sur les photos.</span>
+      </div>
+      <div class="field" id="askField" hidden>
+        <button type="button" class="btn ghost-accent" id="askBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M11 8v6M8 11h6"/></svg>Faire identifier par Claude
+        </button>
+        <span class="hint">Envoie tes photos à l'appli Claude avec la bonne question : choisis « Claude » dans la liste de partage, puis reporte ici ce qu'il te répond.</span>
+      </div>
+      <div class="field">
+        <label for="f-name">Nom de la canette</label>
+        <input id="f-name" required placeholder="Ex. Ultra Paradise" autocomplete="off">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="f-gamme">Gamme</label>
+          <input id="f-gamme" list="dl-gamme" placeholder="Ex. Ultra" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="f-cont">Contenance</label>
+          <input id="f-cont" list="dl-cont" placeholder="500 ml" autocomplete="off">
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-pays">Pays / marché</label>
+        <input id="f-pays" list="dl-pays" placeholder="Ex. France" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-code">Code-barres</label>
+        <div class="codeline">
+          <input id="f-code" inputmode="numeric" placeholder="13 chiffres sous les barres" autocomplete="off">
+          <button type="button" class="btn" id="f-codeScan">Scanner</button>
+        </div>
+        <div id="f-dup"></div>
+      </div>
+      <div class="field">
+        <label for="f-details">Ce qui la distingue</label>
+        <textarea id="f-details" placeholder="Édition limitée, couleur de l'opercule, texte au dos, année…"></textarea>
+      </div>
+      <div class="field">
+        <span class="lbl">Exemplaires</span>
+        <div class="stepper">
+          <button type="button" id="q-minus" aria-label="Un exemplaire de moins">−</button>
+          <output id="f-qty">1</output>
+          <button type="button" id="q-plus" aria-label="Un exemplaire de plus">+</button>
+        </div>
+      </div>
+      <details class="tips">
+        <summary>Comment identifier une canette</summary>
+        <div>
+          <p><b>Gamme.</b> Le nom de la gamme est imprimé près du nom du parfum : Ultra, Juice, Rehab, Java, Reserve, Nitro, Punch… La couleur dominante aide à départager deux parfums proches.</p>
+          <p><b>Pays.</b> Regarde la langue des mentions obligatoires au dos (« Teneur élevée en caféine » en France, « Erhöhter Koffeingehalt » en Allemagne), l'adresse de l'importateur ou du distributeur, et les logos de consigne : DPG en Allemagne, « statiegeld » aux Pays-Bas, « pant » dans les pays nordiques.</p>
+          <p><b>Contenance.</b> 500 ml est le format européen courant. 355 ml ou 473 ml (12 ou 16 oz) signale souvent l'Amérique du Nord, et le 355 ml se voit aussi au Japon.</p>
+          <p><b>Code-barres.</b> Les premiers chiffres disent où le code a été déposé, pas où la canette est vendue : beaucoup de canettes européennes commencent par 50, le préfixe britannique. Il sert surtout à reconnaître une canette déjà eue.</p>
+          <p><b>Éditions spéciales.</b> Une édition limitée garde souvent le code-barres de la version classique. Photographie le détail qui change (visuel, mention, opercule) pour pouvoir comparer en magasin.</p>
+        </div>
+      </details>
+      <div class="err" id="f-err" hidden></div>
+      <button type="submit" class="btn primary" id="f-save">Enregistrer dans la vitrine</button>
+    </form>
+  </div></div></div>
+</section>
+
+<!-- Résultat de vérification -->
+<section class="sheet" id="scanSheet" hidden aria-label="Vérifier une canette">
+  <div class="sheet-head"><div class="gutter"><div class="wrap">
+    <button type="button" class="back" data-close="scanSheet">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Vitrine
+    </button>
+    <h2>Je l'ai déjà ?</h2>
+  </div></div></div>
+  <div class="sheet-body"><div class="gutter"><div class="wrap">
+    <div id="scanResult"></div>
+    <button type="button" class="btn primary" id="scanAgain">Scanner une autre canette</button>
+    <div class="field">
+      <label for="scanCode">Ou tape les chiffres</label>
+      <input id="scanCode" class="mono" inputmode="numeric" placeholder="Ex. 5060337500401" autocomplete="off">
+    </div>
+  </div></div></div>
+</section>
+
+<!-- Réglages et sauvegarde -->
+<section class="sheet" id="settings" hidden aria-label="Réglages">
+  <div class="sheet-head"><div class="gutter"><div class="wrap">
+    <button type="button" class="back" data-close="settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Vitrine
+    </button>
+    <h2>Réglages</h2>
+  </div></div></div>
+  <div class="sheet-body"><div class="gutter"><div class="wrap">
+    <div class="panel">
+      <h3>Sauvegarde</h3>
+      <p>Ta collection est enregistrée dans ce téléphone. Exporte une sauvegarde de temps en temps (photos comprises) et range-la dans ton Drive : elle sert aussi à passer sur un nouveau téléphone.</p>
+      <div class="actions">
+        <button type="button" class="btn primary" id="exportBtn">Exporter la collection</button>
+        <button type="button" class="btn" id="importBtn">Importer une sauvegarde</button>
+      </div>
+      <p id="backupInfo"></p>
+    </div>
+    <div class="panel">
+      <h3>Espace utilisé</h3>
+      <div class="meter"><i id="meterBar" style="width:0%"></i></div>
+      <p id="storageInfo">Calcul…</p>
+    </div>
+    <div class="panel" id="installPanel">
+      <h3>Installer sur l'écran d'accueil</h3>
+      <ol>
+        <li>Ouvre ce site dans Chrome.</li>
+        <li>Menu ⋮ en haut à droite, puis « Ajouter à l'écran d'accueil » ou « Installer l'application ».</li>
+        <li>La Canetthèque s'ouvre ensuite en plein écran, même sans réseau.</li>
+      </ol>
+    </div>
+  </div></div></div>
+</section>
+
+<!-- Scanner en direct -->
+<div class="live" id="live" hidden>
+  <video id="liveVideo" playsinline muted autoplay></video>
+  <div class="frame" aria-hidden="true"></div>
+  <div class="live-top">
+    <button type="button" id="liveClose">Fermer</button>
+    <button type="button" id="liveTorch" aria-pressed="false" hidden>Lampe</button>
+  </div>
+  <div class="live-bottom">
+    <p id="liveMsg">Place le code-barres dans le cadre</p>
+    <button type="button" class="btn" id="livePhoto">Prendre une photo à la place</button>
+  </div>
+</div>
+
+<input type="file" id="photoIn" accept="image/*" multiple hidden>
+<input type="file" id="camIn" accept="image/*" capture="environment" hidden>
+<input type="file" id="codeIn" accept="image/*" capture="environment" hidden>
+<input type="file" id="importIn" accept="application/json,.json" hidden>
+
+<datalist id="dl-gamme">
+  <option value="Original"><option value="Ultra"><option value="Juice"><option value="Rehab"><option value="Java">
+  <option value="Reserve"><option value="Nitro"><option value="Punch"><option value="Hydro"><option value="Lo-Carb">
+  <option value="Muscle"><option value="Dragon Tea"><option value="Mule"><option value="Absolutely Zero">
+</datalist>
+<datalist id="dl-cont"><option value="250 ml"><option value="355 ml"><option value="473 ml"><option value="500 ml"><option value="550 ml"><option value="568 ml"></datalist>
+<datalist id="dl-pays">
+  <option value="France"><option value="Royaume-Uni"><option value="Allemagne"><option value="Espagne"><option value="Italie">
+  <option value="Belgique"><option value="Pays-Bas"><option value="Pologne"><option value="États-Unis"><option value="Japon">
+</datalist>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* ===================== OUTILS ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const digits = s => String(s ?? '').replace(/\D/g, '');
+const codeKey = s => digits(s).replace(/^0+/, '');
+const plural = (n, one, many) => n + ' ' + (n > 1 ? many : one);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 2800);
+}
+function vibrate(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+
+/* Contrôle de la clé du code-barres (EAN-8, UPC-A, EAN-13) */
+function validCode(d) {
+  if (![8, 12, 13].includes(d.length)) return false;
+  const body = d.slice(0, -1).split('').reverse();
+  const sum = body.reduce((s, c, i) => s + Number(c) * (i % 2 === 0 ? 3 : 1), 0);
+  return (10 - (sum % 10)) % 10 === Number(d.slice(-1));
+}
+
+/* ===================== STOCKAGE (IndexedDB, dans le téléphone) ===================== */
+const Store = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('canettheque', 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if (!d.objectStoreNames.contains('cans')) d.createObjectStore('cans', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', { keyPath: 'id' });
+      };
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  run(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(store, mode);
+      const s = t.objectStore(store);
+      let out;
+      const req = fn(s);
+      if (req) req.onsuccess = () => { out = req.result; };
+      t.oncomplete = () => res(out);
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error);
+    });
+  },
+  all(store) { return this.run(store, 'readonly', s => s.getAll()); },
+  get(store, id) { return this.run(store, 'readonly', s => s.get(id)); },
+  put(store, v) { return this.run(store, 'readwrite', s => s.put(v)); },
+  del(store, id) { return this.run(store, 'readwrite', s => s.delete(id)); }
+};
+
+/* URL d'affichage des photos (vignette pour la grille, pleine taille pour la fiche) */
+const thumbUrls = new Map();
+const fullUrls = new Map();
+function thumbSrc(id) { return thumbUrls.get(id) || ''; }
+async function fullSrc(id) {
+  if (fullUrls.has(id)) return fullUrls.get(id);
+  const p = await Store.get('photos', id);
+  if (!p) return '';
+  const u = URL.createObjectURL(p.blob);
+  fullUrls.set(id, u);
+  return u;
+}
+function forgetPhoto(id) {
+  for (const m of [thumbUrls, fullUrls]) { const u = m.get(id); if (u) URL.revokeObjectURL(u); m.delete(id); }
+}
+
+/* ===================== IMAGES ===================== */
+function loadImg(src) {
+  return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+}
+function drawToCanvas(src, maxSide, rotate) {
+  const w0 = src.naturalWidth || src.videoWidth || src.width, h0 = src.naturalHeight || src.videoHeight || src.height;
+  const s = Math.min(1, maxSide / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * s)), h = Math.max(1, Math.round(h0 * s));
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  if (rotate) {
+    c.width = h; c.height = w;
+    ctx.translate(h / 2, w / 2); ctx.rotate(Math.PI / 2); ctx.drawImage(src, -w / 2, -h / 2, w, h);
+  } else {
+    c.width = w; c.height = h; ctx.drawImage(src, 0, 0, w, h);
+  }
+  return c;
+}
+const toBlob = (c, q) => new Promise(r => c.toBlob(r, 'image/jpeg', q));
+async function makePhoto(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    const blob = await toBlob(drawToCanvas(img, 1600, false), 0.86);
+    const thumb = await toBlob(drawToCanvas(img, 420, false), 0.8);
+    return { blob: blob || file, thumb: thumb || blob || file };
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* ===================== LECTURE DU CODE-BARRES ===================== */
+let zxingPromise = null;
+function loadZXing() {
+  if (window.ZXing) return Promise.resolve(window.ZXing);
+  if (!zxingPromise) {
+    zxingPromise = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
+      s.onload = () => res(window.ZXing);
+      s.onerror = () => { zxingPromise = null; rej(new Error('zxing')); };
+      document.head.appendChild(s);
+    });
+  }
+  return zxingPromise;
+}
+let detectorPromise = null;
+function getDetector() {
+  if (!detectorPromise) {
+    detectorPromise = (async () => {
+      if (!('BarcodeDetector' in window)) return null;
+      try {
+        const supported = await BarcodeDetector.getSupportedFormats();
+        const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e'].filter(f => supported.includes(f));
+        return formats.length ? new BarcodeDetector({ formats }) : null;
+      } catch (e) { return null; }
+    })();
+  }
+  return detectorPromise;
+}
+function zxingDecodeCanvas(Z, c) {
+  const hints = new Map();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]);
+  hints.set(Z.DecodeHintType.TRY_HARDER, true);
+  try {
+    const bmp = new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(c)));
+    const r = new Z.MultiFormatReader().decode(bmp, hints);
+    return r ? digits(r.getText()) : null;
+  } catch (e) { return null; }
+}
+/* Sur une photo */
+async function decodeBarcode(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    const det = await getDetector();
+    if (det) {
+      try { const found = await det.detect(drawToCanvas(img, 1800, false)); if (found.length) return digits(found[0].rawValue); } catch (e) {}
+    }
+    const Z = await loadZXing();
+    for (const [side, rot] of [[1400, false], [1400, true], [900, false], [900, true]]) {
+      const code = zxingDecodeCanvas(Z, drawToCanvas(img, side, rot));
+      if (code) return code;
+    }
+    return null;
+  } catch (e) { return null; } finally { URL.revokeObjectURL(url); }
+}
+
+/* Scanner en direct avec la caméra */
+const Live = { stream: null, timer: null, onCode: null, busy: false, torch: false };
+async function openLive(onCode) {
+  Live.onCode = onCode;
+  const box = $('#live'), video = $('#liveVideo');
+  $('#liveMsg').textContent = 'Ouverture de la caméra…';
+  $('#liveTorch').hidden = true; Live.torch = false; $('#liveTorch').setAttribute('aria-pressed', 'false');
+  box.hidden = false; document.body.style.overflow = 'hidden';
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { liveFallback('Caméra en direct indisponible ici.'); return; }
+  try {
+    Live.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false
+    });
+  } catch (e) {
+    liveFallback(e && e.name === 'NotAllowedError' ? 'Accès à la caméra refusé. Autorise-le dans les réglages du site.' : 'Impossible d\'ouvrir la caméra.');
+    return;
+  }
+  if (box.hidden) { stopStream(); return; } // fermé entre-temps
+  video.srcObject = Live.stream;
+  try { await video.play(); } catch (e) {}
+  const track = Live.stream.getVideoTracks()[0];
+  try { const caps = track.getCapabilities ? track.getCapabilities() : {}; if (caps.torch) $('#liveTorch').hidden = false; } catch (e) {}
+  try { const caps = track.getCapabilities ? track.getCapabilities() : {}; if (caps.focusMode && caps.focusMode.includes('continuous')) await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {}
+  $('#liveMsg').textContent = 'Place le code-barres dans le cadre';
+  const det = await getDetector();
+  let Z = null;
+  if (!det) { try { Z = await loadZXing(); } catch (e) { liveFallback('Le lecteur de code-barres n\'a pas pu se charger.'); return; } }
+  let rotate = false;
+  const tick = async () => {
+    if (!Live.stream || Live.busy) return;
+    if (video.readyState < 2) { Live.timer = setTimeout(tick, 150); return; }
+    Live.busy = true;
+    let code = null;
+    try {
+      if (det) {
+        const found = await det.detect(video);
+        const hit = found.map(f => digits(f.rawValue)).find(validCode);
+        if (hit) code = hit;
+      } else {
+        // zone centrale de l'image, alternativement à plat et tournée
+        const vw = video.videoWidth, vh = video.videoHeight;
+        const c = document.createElement('canvas');
+        const cw = Math.round(vw * 0.8), ch = Math.round(vh * 0.6);
+        const s = Math.min(1, 1000 / cw);
+        c.width = Math.round(cw * s); c.height = Math.round(ch * s);
+        c.getContext('2d', { willReadFrequently: true }).drawImage(video, (vw - cw) / 2, (vh - ch) / 2, cw, ch, 0, 0, c.width, c.height);
+        const src = rotate ? drawToCanvas(c, 1000, true) : c;
+        rotate = !rotate;
+        const d = zxingDecodeCanvas(Z, src);
+        if (d && (validCode(d) || d.length === 8)) code = d;
+      }
+    } catch (e) {}
+    Live.busy = false;
+    if (code) { vibrate(120); const cb = Live.onCode; closeLive(); cb && cb(code); return; }
+    if (Live.stream) Live.timer = setTimeout(tick, det ? 120 : 220);
+  };
+  tick();
+}
+function stopStream() {
+  clearTimeout(Live.timer);
+  if (Live.stream) { Live.stream.getTracks().forEach(t => t.stop()); Live.stream = null; }
+  $('#liveVideo').srcObject = null;
+}
+function closeLive() {
+  stopStream();
+  $('#live').hidden = true;
+  if (allSheetsClosed()) document.body.style.overflow = '';
+}
+function liveFallback(msg) {
+  stopStream();
+  $('#liveMsg').textContent = msg + ' Prends plutôt le code en photo.';
+}
+$('#liveClose').addEventListener('click', closeLive);
+$('#liveTorch').addEventListener('click', async () => {
+  const track = Live.stream && Live.stream.getVideoTracks()[0]; if (!track) return;
+  Live.torch = !Live.torch;
+  try { await track.applyConstraints({ advanced: [{ torch: Live.torch }] }); $('#liveTorch').setAttribute('aria-pressed', String(Live.torch)); }
+  catch (e) { Live.torch = false; $('#liveTorch').hidden = true; }
+});
+$('#livePhoto').addEventListener('click', () => { $('#codeIn').click(); });
+$('#codeIn').addEventListener('change', async e => {
+  const f = (e.target.files || [])[0]; e.target.value = ''; if (!f) return;
+  const cb = Live.onCode;
+  closeLive();
+  toast('Lecture du code-barres…');
+  const code = await decodeBarcode(f);
+  if (code) { vibrate(120); cb && cb(code); }
+  else toast('Code illisible : rapproche-toi et évite les reflets');
+});
+
+/* ===================== ÉTAT ===================== */
+const S = { cans: [], ready: false, error: null, q: '', gamme: '', sort: 'recent', openId: null, confirmDelete: false, busy: false };
+try { const s = localStorage.getItem('canettheque.sort'); if (s) S.sort = s; } catch (e) {}
+$('#sort').value = S.sort;
+
+async function reload() {
+  S.cans = await Store.all('cans');
+  render();
+  if (S.openId && !$('#detail').hidden) renderDetail();
+}
+
+/* ===================== RENDU VITRINE ===================== */
+function gammeOf(c) { return (c.gamme || '').trim() || 'Sans gamme'; }
+function sorted(list) {
+  const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' });
+  const l = list.slice();
+  if (S.sort === 'az') l.sort(byName);
+  else if (S.sort === 'gamme') l.sort((a, b) => gammeOf(a).localeCompare(gammeOf(b), 'fr') || byName(a, b));
+  else l.sort((a, b) => String(b.addedAt || '').localeCompare(String(a.addedAt || '')));
+  return l;
+}
+function visible() {
+  const terms = norm(S.q).split(/\s+/).filter(Boolean);
+  const qd = codeKey(S.q);
+  return sorted(S.cans.filter(c => {
+    if (S.gamme && gammeOf(c) !== S.gamme) return false;
+    if (!terms.length) return true;
+    const hay = norm([c.name, c.gamme, c.pays, c.contenance, c.details].join(' '));
+    if (terms.every(t => hay.includes(t))) return true;
+    return qd.length >= 4 && codeKey(c.barcode).includes(qd);
+  }));
+}
+function photoBox(c) {
+  const p = (c.photos || [])[0];
+  const src = p ? thumbSrc(p) : '';
+  const qty = Number(c.qty) > 1 ? `<span class="qty">×${Number(c.qty)}</span>` : '';
+  const inner = src
+    ? `<img src="${src}" alt="" loading="lazy">`
+    : `<div class="noimg"><div class="canshape"><span>${esc(c.name)}</span></div></div>`;
+  return `<div class="ph">${inner}${qty}</div>`;
+}
+function render() {
+  const n = S.cans.length;
+  const gammes = new Set(S.cans.map(gammeOf));
+  const doubles = S.cans.reduce((s, c) => s + Math.max(0, (Number(c.qty) || 1) - 1), 0);
+  $('#stats').innerHTML = n
+    ? `<b>${n}</b> ${n > 1 ? 'modèles' : 'modèle'} · <b>${gammes.size}</b> ${gammes.size > 1 ? 'gammes' : 'gamme'}${doubles ? ` · <b>${doubles}</b> ${doubles > 1 ? 'doubles' : 'double'}` : ''}`
+    : 'Collection Monster';
+
+  const counts = {};
+  S.cans.forEach(c => { const g = gammeOf(c); counts[g] = (counts[g] || 0) + 1; });
+  const names = Object.keys(counts).sort((a, b) => a.localeCompare(b, 'fr'));
+  if (S.gamme && !counts[S.gamme]) S.gamme = '';
+  $('#chips').innerHTML = names.length > 1
+    ? [`<button type="button" class="chip" data-g="" aria-pressed="${!S.gamme}">Toutes<span class="n">${n}</span></button>`]
+        .concat(names.map(g => `<button type="button" class="chip" data-g="${esc(g)}" aria-pressed="${S.gamme === g}">${esc(g)}<span class="n">${counts[g]}</span></button>`)).join('')
+    : '';
+  $('#chips').hidden = names.length <= 1;
+
+  $('#notes').innerHTML = S.error ? `<div class="note"><p>${esc(S.error)}</p></div>` : '';
+
+  const list = visible();
+  $('#toolbar').hidden = !S.ready || n === 0;
+  $('#count').textContent = (S.q || S.gamme) ? `${plural(list.length, 'résultat', 'résultats')} sur ${n}` : plural(n, 'canette', 'canettes');
+  $('#grid').innerHTML = list.map(c => `
+    <button type="button" class="can" data-id="${esc(c.id)}">
+      ${photoBox(c)}
+      <span class="nm">${esc(c.name || 'Sans nom')}</span>
+      <span class="sub">${esc([c.gamme, c.contenance, c.pays].filter(Boolean).join(' · '))}</span>
+    </button>`).join('');
+
+  let empty = '';
+  if (!S.ready && !S.error) empty = `<div class="empty"><div class="canshape"></div><p>Ouverture de la vitrine…</p></div>`;
+  else if (S.ready && n === 0) empty = `<div class="empty"><div class="canshape"><span>Ta 1re</span></div><h2>Ta vitrine est vide</h2><p>Touche « Ajouter » et photographie la face, le dos et le code-barres de ta première canette.</p></div>`;
+  else if (S.ready && list.length === 0) empty = `<div class="empty"><h2>Aucune canette trouvée</h2><p>Rien ne correspond à « ${esc(S.q)} »${S.gamme ? ' dans la gamme ' + esc(S.gamme) : ''}. Si tu es en magasin, c'est sans doute une nouvelle !</p></div>`;
+  $('#empty').innerHTML = empty;
+  $('#addBtn').hidden = !S.ready;
+}
+
+/* ===================== FICHES ===================== */
+const SHEETS = ['detail', 'formSheet', 'scanSheet', 'settings'];
+function allSheetsClosed() { return SHEETS.every(s => $('#' + s).hidden) && $('#live').hidden; }
+function openSheet(id) { $('#' + id).hidden = false; document.body.style.overflow = 'hidden'; $('#' + id).scrollTop = 0; }
+function closeSheet(id) {
+  $('#' + id).hidden = true;
+  if (allSheetsClosed()) document.body.style.overflow = '';
+  if (id === 'detail') { S.openId = null; S.confirmDelete = false; }
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; }
+}
+
+/* ---------- Fiche canette ---------- */
+function openDetail(id) { S.openId = id; S.confirmDelete = false; renderDetail(); openSheet('detail'); }
+async function renderDetail() {
+  if (!S.openId) return;
+  const c = S.cans.find(x => x.id === S.openId);
+  if (!c) { closeSheet('detail'); return; }
+  const photos = c.photos || [];
+  const srcs = await Promise.all(photos.map(fullSrc));
+  const slides = photos.length
+    ? srcs.map(u => `<div class="slide">${u ? `<img src="${u}" alt="Photo de ${esc(c.name)}">` : '<div class="noimg"><div class="canshape"></div></div>'}</div>`).join('')
+    : `<div class="slide"><div class="noimg"><div class="canshape"><span>${esc(c.name)}</span></div></div></div>`;
+  const specs = [
+    ['Gamme', esc(c.gamme)], ['Contenance', esc(c.contenance)], ['Pays', esc(c.pays)],
+    ['Code-barres', c.barcode ? `<span class="mono">${esc(c.barcode)}</span>` : ''],
+    ['Exemplaires', String(Number(c.qty) || 1)],
+    ['Ajoutée le', esc(fmtDate(c.addedAt))]
+  ].filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  const acts = S.confirmDelete
+    ? `<div class="confirm"><p>Supprimer « ${esc(c.name)} » et ses photos de la vitrine ?</p><div class="actions"><button type="button" class="btn danger-solid" id="d-del-yes">Oui, supprimer</button><button type="button" class="btn" id="d-del-no">Garder</button></div></div>`
+    : `<div class="actions"><button type="button" class="btn primary" id="d-edit">Modifier</button><button type="button" class="btn danger" id="d-del">Supprimer</button></div>`;
+  $('#detailBody').innerHTML = `
+    <div class="gallery">
+      <div class="photos" id="photos">${slides}</div>
+      <div class="gal-meta"><span id="galPos">${photos.length > 1 ? '1 / ' + photos.length + ' · glisse pour voir les autres' : ''}</span><span>${photos.length ? 'Touche la photo pour zoomer' : 'Pas encore de photo'}</span></div>
+    </div>
+    <div class="d-title">${c.gamme ? `<span class="eyebrow">${esc(c.gamme)}</span>` : ''}<h3>${esc(c.name || 'Sans nom')}</h3></div>
+    <dl class="specs">${specs}</dl>
+    ${c.details ? `<div class="details">${esc(c.details)}</div>` : ''}
+    ${acts}`;
+  const ph = $('#photos');
+  if (photos.length > 1) ph.addEventListener('scroll', () => {
+    const i = Math.round(ph.scrollLeft / ph.clientWidth);
+    $('#galPos').textContent = (i + 1) + ' / ' + photos.length;
+  }, { passive: true });
+  ph.querySelectorAll('.slide img').forEach(img => img.addEventListener('click', e => {
+    const slide = img.parentElement;
+    if (!slide.classList.contains('zoom')) {
+      const r = img.getBoundingClientRect();
+      img.style.transformOrigin = `${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`;
+    }
+    slide.classList.toggle('zoom');
+  }));
+}
+$('#detailBody').addEventListener('click', async e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.id === 'd-edit') openForm(S.openId);
+  if (t.id === 'd-del') { S.confirmDelete = true; renderDetail(); }
+  if (t.id === 'd-del-no') { S.confirmDelete = false; renderDetail(); }
+  if (t.id === 'd-del-yes') {
+    const c = S.cans.find(x => x.id === S.openId); if (!c) return;
+    t.disabled = true;
+    try {
+      await Store.del('cans', c.id);
+      for (const p of c.photos || []) { await Store.del('photos', p); forgetPhoto(p); }
+      closeSheet('detail'); await reload(); toast('Canette supprimée');
+    } catch (err) { t.disabled = false; toast('La suppression n\'a pas abouti.'); }
+  }
+});
+
+/* ---------- Formulaire ---------- */
+const F = { id: null, keep: [], added: [], removed: [], qty: 1 };
+function openForm(id, preset) {
+  const c = id ? S.cans.find(x => x.id === id) : null;
+  F.id = c ? c.id : null;
+  F.keep = c ? (c.photos || []).slice() : [];
+  F.added.forEach(a => URL.revokeObjectURL(a.url));
+  F.added = []; F.removed = [];
+  F.qty = c ? (Number(c.qty) || 1) : 1;
+  $('#formTitle').textContent = c ? 'Modifier' : 'Nouvelle canette';
+  $('#f-name').value = c ? (c.name || '') : '';
+  $('#f-gamme').value = c ? (c.gamme || '') : '';
+  $('#f-cont').value = c ? (c.contenance || '') : '';
+  $('#f-pays').value = c ? (c.pays || '') : '';
+  $('#f-code').value = c ? (c.barcode || '') : ((preset && preset.barcode) || '');
+  $('#f-details').value = c ? (c.details || '') : '';
+  $('#f-err').hidden = true;
+  $('#f-save').disabled = false; $('#f-save').textContent = c ? 'Enregistrer les modifications' : 'Enregistrer dans la vitrine';
+  renderThumbs(); renderQty(); checkDup();
+  openSheet('formSheet');
+}
+function canShareFiles() {
+  try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.jpg', { type: 'image/jpeg' })] })); } catch (e) { return false; }
+}
+function renderThumbs() {
+  const items = F.keep.map(id => `<div class="thumb"><img src="${thumbSrc(id)}" alt=""><button type="button" class="x" data-keep="${esc(id)}" aria-label="Retirer cette photo">×</button></div>`)
+    .concat(F.added.map((a, i) => `<div class="thumb"><img src="${a.url}" alt=""><button type="button" class="x" data-added="${i}" aria-label="Retirer cette photo">×</button></div>`));
+  $('#thumbs').innerHTML = items.join('');
+  $('#thumbs').hidden = !items.length;
+  $('#askField').hidden = !(items.length && canShareFiles());
+}
+function renderQty() { $('#f-qty').textContent = F.qty; }
+function checkDup() {
+  const k = codeKey($('#f-code').value);
+  const box = $('#f-dup');
+  if (k.length < 6) { box.innerHTML = ''; return; }
+  const same = S.cans.filter(c => c.id !== F.id && codeKey(c.barcode) === k);
+  box.innerHTML = same.length
+    ? `<div class="warn">Ce code-barres est déjà dans ta vitrine : <b>${same.map(c => esc(c.name)).join(', ')}</b>. Compare les photos : une édition limitée peut garder le même code. <button type="button" data-see="${esc(same[0].id)}">Voir la fiche</button></div>`
+    : '';
+}
+$('#thumbs').addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.keep) { F.removed.push(t.dataset.keep); F.keep = F.keep.filter(x => x !== t.dataset.keep); renderThumbs(); }
+  if (t.dataset.added !== undefined) { const [a] = F.added.splice(Number(t.dataset.added), 1); if (a) URL.revokeObjectURL(a.url); renderThumbs(); }
+});
+async function addPhotos(e) {
+  const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/') || !f.type);
+  e.target.value = '';
+  if (!files.length) return;
+  files.forEach(f => F.added.push({ file: f, url: URL.createObjectURL(f) }));
+  renderThumbs();
+  if (!digits($('#f-code').value)) {
+    for (const f of files) {
+      const code = await decodeBarcode(f);
+      if (code && !digits($('#f-code').value)) { $('#f-code').value = code; checkDup(); vibrate(80); toast('Code-barres détecté : ' + code); break; }
+    }
+  }
+}
+$('#photoIn').addEventListener('change', addPhotos);
+$('#camIn').addEventListener('change', addPhotos);
+$('#camBtn').addEventListener('click', () => $('#camIn').click());
+$('#albumBtn').addEventListener('click', () => $('#photoIn').click());
+$('#f-codeScan').addEventListener('click', () => openLive(code => { $('#f-code').value = code; checkDup(); toast('Code-barres lu : ' + code); }));
+$('#f-code').addEventListener('input', checkDup);
+$('#f-dup').addEventListener('click', e => { const t = e.target.closest('[data-see]'); if (t) { closeSheet('formSheet'); openDetail(t.dataset.see); } });
+$('#q-minus').addEventListener('click', () => { F.qty = Math.max(1, F.qty - 1); renderQty(); });
+$('#q-plus').addEventListener('click', () => { F.qty = Math.min(99, F.qty + 1); renderQty(); });
+
+/* Identification : partage des photos vers l'appli Claude */
+$('#askBtn').addEventListener('click', async () => {
+  const files = [];
+  try {
+    for (const a of F.added.slice(0, 4)) {
+      const { blob } = await makePhoto(a.file);
+      files.push(new File([blob], `canette-${files.length + 1}.jpg`, { type: 'image/jpeg' }));
+    }
+    for (const id of F.keep) {
+      if (files.length >= 4) break;
+      const p = await Store.get('photos', id);
+      if (p) files.push(new File([p.blob], `canette-${files.length + 1}.jpg`, { type: 'image/jpeg' }));
+    }
+  } catch (e) {}
+  if (!files.length) { toast('Ajoute d\'abord une photo de la canette'); return; }
+  const text = 'Peux-tu identifier cette canette Monster Energy à partir des photos ? Donne-moi : le nom exact du parfum ou de l\'édition, la gamme, le pays de vente le plus probable avec les indices visibles qui le montrent (langue des mentions, importateur, consigne…), la contenance, les chiffres du code-barres s\'ils sont lisibles, et ce qui distingue cette édition des versions proches.';
+  try { await navigator.share({ files, text }); }
+  catch (e) { if (e && e.name !== 'AbortError') toast('Le partage n\'a pas pu s\'ouvrir.'); }
+});
+
+$('#canForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (S.busy) return;
+  const name = $('#f-name').value.trim();
+  const errBox = $('#f-err');
+  if (!name) { errBox.textContent = 'Donne un nom à la canette, par exemple « Ultra Paradise ».'; errBox.hidden = false; $('#f-name').focus(); return; }
+  errBox.hidden = true;
+  S.busy = true;
+  const btn = $('#f-save'); btn.disabled = true; btn.textContent = 'Enregistrement…';
+  try {
+    const ids = F.keep.slice();
+    for (const a of F.added) {
+      const { blob, thumb } = await makePhoto(a.file);
+      const id = uid();
+      await Store.put('photos', { id, blob, thumb });
+      thumbUrls.set(id, URL.createObjectURL(thumb));
+      ids.push(id);
+    }
+    const prev = F.id ? S.cans.find(c => c.id === F.id) : null;
+    const now = new Date().toISOString();
+    const can = {
+      id: F.id || uid(),
+      name,
+      gamme: $('#f-gamme').value.trim(),
+      contenance: $('#f-cont').value.trim(),
+      pays: $('#f-pays').value.trim(),
+      barcode: digits($('#f-code').value),
+      details: $('#f-details').value.trim(),
+      qty: F.qty,
+      photos: ids,
+      addedAt: (prev && prev.addedAt) || now,
+      updatedAt: now
+    };
+    await Store.put('cans', can);
+    for (const rid of F.removed) { await Store.del('photos', rid); forgetPhoto(rid); }
+    F.added.forEach(a => URL.revokeObjectURL(a.url)); F.added = [];
+    const wasEdit = !!F.id;
+    closeSheet('formSheet');
+    await reload();
+    toast(wasEdit ? 'Modifications enregistrées' : 'Canette ajoutée à la vitrine');
+  } catch (err) {
+    errBox.textContent = err && err.name === 'QuotaExceededError'
+      ? 'Le téléphone n\'a plus assez de place pour enregistrer les photos.'
+      : 'L\'enregistrement n\'a pas abouti. Réessaie.';
+    errBox.hidden = false;
+    btn.disabled = false; btn.textContent = F.id ? 'Enregistrer les modifications' : 'Enregistrer dans la vitrine';
+  } finally { S.busy = false; }
+});
+
+/* ===================== VÉRIFICATION EN MAGASIN ===================== */
+function showScanResult(raw) {
+  const k = codeKey(raw);
+  const box = $('#scanResult');
+  if (k.length < 6) { box.innerHTML = ''; return; }
+  const found = S.cans.filter(c => codeKey(c.barcode) === k);
+  if (found.length) {
+    box.innerHTML = `
+      <div class="verdict owned"><div class="big">Déjà dans ta vitrine</div>
+        <p>${found.length > 1 ? found.length + ' canettes ont ce code.' : 'Tu as cette canette.'} Compare bien la photo : une édition spéciale peut garder le même code-barres qu'une canette classique.</p></div>
+      <div class="matches">${found.map(c => `
+        <button type="button" class="match" data-id="${esc(c.id)}">
+          ${photoBox(c)}
+          <span class="info"><b>${esc(c.name)}</b><span>${esc([c.gamme, c.contenance, c.pays].filter(Boolean).join(' · '))}</span>${c.details ? `<span>${esc(c.details)}</span>` : ''}<span class="mono">${esc(c.barcode)}</span></span>
+        </button>`).join('')}</div>`;
+  } else {
+    box.innerHTML = `
+      <div class="verdict fresh"><div class="big">Pas encore dans ta vitrine</div>
+        <p>Aucune canette avec le code <span class="mono">${esc(digits(raw))}</span>. Si tu n'as pas noté le code de toutes tes canettes, vérifie aussi par le nom avec la recherche.</p></div>
+      <button type="button" class="btn primary" id="scanAdd">Je la prends : l'ajouter</button>`;
+  }
+}
+function scanToVerify() {
+  openLive(code => {
+    $('#scanCode').value = code;
+    showScanResult(code);
+    if ($('#scanSheet').hidden) openSheet('scanSheet');
+  });
+}
+$('#scanBtn').addEventListener('click', scanToVerify);
+$('#scanAgain').addEventListener('click', scanToVerify);
+$('#scanCode').addEventListener('input', e => showScanResult(e.target.value));
+$('#scanResult').addEventListener('click', e => {
+  const m = e.target.closest('.match');
+  if (m) { openDetail(m.dataset.id); return; }
+  if (e.target.closest('#scanAdd')) { const code = digits($('#scanCode').value); closeSheet('scanSheet'); openForm(null, { barcode: code }); }
+});
+
+/* ===================== RÉGLAGES, SAUVEGARDE ===================== */
+function blobToDataUrl(b) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); }); }
+async function dataUrlToBlob(u) { const r = await fetch(u); return r.blob(); }
+function fmtSize(b) { return b > 1e9 ? (b / 1e9).toFixed(1) + ' Go' : b > 1e6 ? Math.round(b / 1e6) + ' Mo' : Math.max(1, Math.round(b / 1e3)) + ' Ko'; }
+async function openSettings() {
+  openSheet('settings');
+  $('#installPanel').hidden = isStandalone();
+  try {
+    const est = await navigator.storage.estimate();
+    const pct = est.quota ? Math.min(100, (est.usage / est.quota) * 100) : 0;
+    $('#meterBar').style.width = pct.toFixed(1) + '%';
+    $('#storageInfo').textContent = `${fmtSize(est.usage || 0)} utilisés sur ${fmtSize(est.quota || 0)} disponibles pour l'appli.`;
+  } catch (e) { $('#storageInfo').textContent = 'Espace non communiqué par le téléphone.'; }
+  try { const last = localStorage.getItem('canettheque.lastExport'); $('#backupInfo').textContent = last ? 'Dernière sauvegarde : ' + fmtDate(last) + '.' : 'Aucune sauvegarde exportée pour l\'instant.'; } catch (e) {}
+}
+$('#settingsBtn').addEventListener('click', openSettings);
+$('#exportBtn').addEventListener('click', async () => {
+  const b = $('#exportBtn'); b.disabled = true; b.textContent = 'Préparation…';
+  try {
+    const cans = await Store.all('cans');
+    const photos = await Store.all('photos');
+    const out = { app: 'canettheque', version: 1, exportedAt: new Date().toISOString(), cans, photos: [] };
+    for (const p of photos) out.photos.push({ id: p.id, blob: await blobToDataUrl(p.blob), thumb: await blobToDataUrl(p.thumb) });
+    const file = new Blob([JSON.stringify(out)], { type: 'application/json' });
+    const name = `canettheque-${new Date().toISOString().slice(0, 10)}.json`;
+    const f = new File([file], name, { type: 'application/json' });
+    let shared = false;
+    try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: 'Sauvegarde Canetthèque' }); shared = true; } }
+    catch (e) { if (e && e.name === 'AbortError') shared = true; }
+    if (!shared) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(file); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }
+    try { localStorage.setItem('canettheque.lastExport', out.exportedAt); } catch (e) {}
+    $('#backupInfo').textContent = `Sauvegarde prête : ${plural(cans.length, 'canette', 'canettes')}, ${fmtSize(file.size)}.`;
+  } catch (e) { toast('L\'export n\'a pas abouti.'); }
+  b.disabled = false; b.textContent = 'Exporter la collection';
+});
+$('#importBtn').addEventListener('click', () => $('#importIn').click());
+$('#importIn').addEventListener('change', async e => {
+  const f = (e.target.files || [])[0]; e.target.value = ''; if (!f) return;
+  const b = $('#importBtn'); b.disabled = true; b.textContent = 'Import…';
+  try {
+    const data = JSON.parse(await f.text());
+    if (!data || data.app !== 'canettheque' || !Array.isArray(data.cans)) throw new Error('format');
+    for (const p of data.photos || []) {
+      await Store.put('photos', { id: p.id, blob: await dataUrlToBlob(p.blob), thumb: await dataUrlToBlob(p.thumb || p.blob) });
+      forgetPhoto(p.id);
+    }
+    for (const c of data.cans) await Store.put('cans', c);
+    await loadThumbs();
+    await reload();
+    $('#backupInfo').textContent = `Import terminé : ${plural(data.cans.length, 'canette', 'canettes')} ajoutées ou mises à jour.`;
+  } catch (err) { toast('Ce fichier n\'est pas une sauvegarde de la Canetthèque.'); }
+  b.disabled = false; b.textContent = 'Importer une sauvegarde';
+});
+
+/* ===================== INSTALLATION ===================== */
+function isStandalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+let installEvent = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvent = e; $('#installBtn').hidden = false; });
+window.addEventListener('appinstalled', () => { installEvent = null; $('#installBtn').hidden = true; toast('Canetthèque installée'); });
+$('#installBtn').addEventListener('click', async () => {
+  if (!installEvent) return;
+  installEvent.prompt();
+  try { await installEvent.userChoice; } catch (e) {}
+  installEvent = null; $('#installBtn').hidden = true;
+});
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+
+/* ===================== ÉVÉNEMENTS GÉNÉRAUX ===================== */
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeSheet(b.dataset.close)));
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('#live').hidden) { closeLive(); return; }
+  for (const id of SHEETS) if (!$('#' + id).hidden) { closeSheet(id); break; }
+});
+$('#q').addEventListener('input', e => { S.q = e.target.value; $('#qClear').hidden = !S.q; render(); });
+$('#qClear').addEventListener('click', () => { S.q = ''; $('#q').value = ''; $('#qClear').hidden = true; render(); $('#q').focus(); });
+$('#chips').addEventListener('click', e => { const c = e.target.closest('.chip'); if (!c) return; S.gamme = c.dataset.g; render(); });
+$('#sort').addEventListener('change', e => { S.sort = e.target.value; try { localStorage.setItem('canettheque.sort', S.sort); } catch (err) {} render(); });
+$('#grid').addEventListener('click', e => { const c = e.target.closest('.can'); if (c) openDetail(c.dataset.id); });
+$('#addBtn').addEventListener('click', () => openForm(null));
+
+/* ===================== DÉMARRAGE ===================== */
+async function loadThumbs() {
+  const photos = await Store.all('photos');
+  for (const p of photos) if (!thumbUrls.has(p.id)) thumbUrls.set(p.id, URL.createObjectURL(p.thumb || p.blob));
+}
+render();
+(async function boot() {
+  try {
+    await Store.open();
+    await loadThumbs();
+    S.ready = true;
+    await reload();
+    try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) {}
+  } catch (e) {
+    S.error = 'Le stockage du téléphone est inaccessible (navigation privée ?). Ouvre la Canetthèque dans Chrome en mode normal.';
+    S.ready = true; render();
+  }
+})();
+</script>
+</body>
+</html>

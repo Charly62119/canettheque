@@ -1,0 +1,17 @@
+{
+  "name": "Canetthèque",
+  "short_name": "Canetthèque",
+  "description": "Ma collection de canettes Monster, en photos, avec vérification par code-barres en magasin.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060706",
+  "theme_color": "#060706",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
