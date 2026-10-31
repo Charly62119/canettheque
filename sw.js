@@ -1,5 +1,7 @@
-// Canetthèque — service worker : l'appli s'ouvre même sans réseau (en magasin, au sous-sol…)
-const CACHE = 'canettheque-v1';
+// Canetthèque — service worker v2
+// Réseau d'abord pour tout ce qui vient du site ; le cache ne sert que si le téléphone est vraiment hors ligne.
+// Seules les réponses valides (200) sont gardées, jamais une page d'erreur.
+const CACHE = 'canettheque-v2';
 const SHELL = [
   './',
   './index.html',
@@ -11,7 +13,12 @@ const SHELL = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      // un fichier manquant ne bloque pas l'installation
+      .then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => null))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -22,31 +29,45 @@ self.addEventListener('activate', e => {
   );
 });
 
+function keep(req, res) {
+  if (res && res.status === 200) {
+    const copy = res.clone();
+    caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+  }
+  return res;
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Page de l'appli : réseau d'abord (pour recevoir les mises à jour), cache si hors ligne
+  // Ouverture de l'appli
   if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req)
-        .then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); return res; })
-        .catch(() => caches.match('./index.html'))
-    );
+    e.respondWith((async () => {
+      try {
+        const res = await fetch(req);
+        if (res.status === 200) keep('./index.html', res.clone());
+        return res;
+      } catch (err) {
+        return (await caches.match('./index.html', { ignoreSearch: true }))
+          || (await caches.match('./', { ignoreSearch: true }))
+          || new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="background:#060706;color:#f1f5ec;font:16px system-ui;padding:24px">Pas de réseau pour le premier lancement. Reconnecte-toi puis rouvre la Canetthèque.</body>',
+            { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      }
+    })());
     return;
   }
 
-  // Fichiers de l'appli, polices et lecteur de code-barres : cache d'abord
-  const cacheable = url.origin === location.origin
+  // Fichiers du site, polices et lecteur de code-barres
+  const ours = url.origin === location.origin
     || url.hostname === 'fonts.googleapis.com'
     || url.hostname === 'fonts.gstatic.com'
     || url.hostname === 'unpkg.com';
-  if (!cacheable) return;
+  if (!ours) return;
   e.respondWith(
-    caches.match(req).then(hit => hit || fetch(req).then(res => {
-      if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
-      return res;
-    }))
+    fetch(req)
+      .then(res => keep(req, res))
+      .catch(() => caches.match(req).then(hit => hit || Response.error()))
   );
 });
